@@ -1,5 +1,5 @@
 __author__ = 'DreTaX'
-__version__ = '1.3.1'
+__version__ = '1.4'
 
 import clr
 
@@ -36,7 +36,7 @@ class BannedPeople:
         CheckV method based on Spock's method.
         Upgraded by DreTaX
         Can Handle Single argument and Array args.
-        V4.0
+        V4.1
     """
 
     def GetPlayerName(self, namee):
@@ -68,7 +68,7 @@ class BannedPeople:
             p = self.GetPlayerName(nargs)
             if p is not None:
                 return p
-            for pl in Server.ActivePlayers:
+            for pl in Server.Players:
                 if nargs in pl.Name.lower():
                     p = pl
                     count += 1
@@ -202,7 +202,7 @@ class BannedPeople:
                         ini.Save()
                         for pl in Server.Players:
                             if pl.Admin:
-                                pl.MessageFrom(sysname, self.red + name + self.white + " was unbanned by: "  + self.green + Player.Name)
+                                pl.MessageFrom(sysname, self.red + name + self.white + " was unbanned by: " + self.green + Player.Name)
 
                         Player.MessageFrom(sysname, "Player " + name + " unbanned!")
                 else:
@@ -225,6 +225,26 @@ class BannedPeople:
                 Player.MessageFrom(sysname, self.red + "Current Bans:")
                 for pl in checkdist:
                     Player.MessageFrom(sysname, str(pl))
+        elif cmd == "munbanip":
+            if Player.Admin or self.isMod(Player.SteamID):
+                ini = self.BannedPeopleIni()
+                cfg = self.BannedPeopleConfig()
+                sysname = cfg.GetSetting("Main", "Name")
+                if len(args) == 0 or len(args) > 1:
+                    Player.MessageFrom(sysname, "Usage: /munbanip IDorIP")
+                    return
+                v = str(args[0])
+                if ini.GetSetting("Ips", v) is not None and ini.GetSetting("Ips", v):
+                    ini.DeleteSetting("Ips", v)
+                    ini.Save()
+                    Player.MessageFrom(sysname, "Unbanned.")
+                    return
+                if ini.GetSetting("Ids", v) is not None and ini.GetSetting("Ids", v):
+                    ini.DeleteSetting("Ids", v)
+                    ini.Save()
+                    Player.MessageFrom(sysname, "Unbanned.")
+                    return
+                Player.MessageFrom(sysname, "Couldn't find " + v)
 
     def On_PlayerConnected(self, Player):
         id = self.TrytoGrabID(Player)
@@ -234,15 +254,25 @@ class BannedPeople:
             except:
                 pass
             return
-        ip = str(Player.IP)
+        ip = Player.IP
         ini = self.BannedPeopleConfig()
         sysname = ini.GetSetting("Main", "Name")
         bannedreason = ini.GetSetting("Main", "BannedDrop")
         ini = self.BannedPeopleIni()
-        if ini.GetSetting("Ips", ip) == "1":
+        if ini.GetSetting("Ips", ip) is not None and ini.GetSetting("Ips", ip):
+            if ini.GetSetting("Ids", id) is None:
+                ini.AddSetting("Ids", id, Player.Name + " Connected from a banned IP: " + ip)
+                ini.AddSetting("NameIps", Player.Name, ip)
+                ini.AddSetting("NameIds", Player.Name, id)
+                ini.Save()
             Player.MessageFrom(sysname, bannedreason)
             Player.Disconnect()
             return
-        if ini.GetSetting("Ids", id) == "1":
+        if ini.GetSetting("Ids", id) is not None and ini.GetSetting("Ids", id):
+            if ini.GetSetting("Ips", ip) is None:
+                ini.AddSetting("Ips", ip, Player.Name + " Connected from a banned ID " + id)
+                ini.AddSetting("NameIps", Player.Name, ip)
+                ini.AddSetting("NameIds", Player.Name, id)
+                ini.Save()
             Player.MessageFrom(sysname, bannedreason)
             Player.Disconnect()

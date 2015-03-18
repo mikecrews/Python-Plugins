@@ -1,5 +1,5 @@
 __author__ = 'DreTaX'
-__version__ = '1.1'
+__version__ = '1.2.1'
 
 import clr
 
@@ -34,7 +34,7 @@ class BannedPeople:
         self.BannedPeopleConfig()
 
     def argsToText(self, args):
-        text = String.Join(" ", args)
+        text = str.Join(" ", args)
         return text
 
     def GetPlayerUnBannedID(self, namee):
@@ -78,7 +78,7 @@ class BannedPeople:
         systemname = ini.GetSetting("Main", "Name")
         count = 0
         if hasattr(args, '__len__') and (not isinstance(args, str)):
-            p = self.GetPlayerName(String.Join(" ", args))
+            p = self.GetPlayerName(str.Join(" ", args))
             if p is not None:
                 return p
             for pl in Server.ActivePlayers:
@@ -97,7 +97,7 @@ class BannedPeople:
                     count += 1
                     continue
         if count == 0:
-            Player.MessageFrom(systemname, "Couldn't find " + String.Join(" ", args) + "!")
+            Player.MessageFrom(systemname, "Couldn't find " + str.Join(" ", args) + "!")
             return None
         elif count == 1 and p is not None:
             return p
@@ -108,14 +108,14 @@ class BannedPeople:
     def On_Command(self, cmd):
         Player = cmd.User
         args = cmd.args
-        if Player.Admin:
-            if cmd.cmd == "banip":
+        if cmd.cmd == "banip":
+            if Player.Admin:
                 ini = self.BannedPeopleConfig()
                 sysname = ini.GetSetting("Main", "Name")
                 bannedreason = ini.GetSetting("Main", "BannedDrop")
                 if len(args) > 0:
                     playerr = self.CheckV(Player, args)
-                    if playerr == None:
+                    if playerr is None:
                         return
 
                     else:
@@ -146,8 +146,6 @@ class BannedPeople:
 
                         elif checking == "false" or checking == None:
                             playerr.MessageFrom(sysname, "Admin, who banned you: " + Player.Name)
-
-                        #todo: Make sure to add a kick reason arg crap here
                         playerr.Kick(bannedreason)
                 else:
                     Player.MessageFrom(sysname, "Specify a Name!")
@@ -202,8 +200,16 @@ class BannedPeople:
         ini = self.BannedPeopleConfig()
         bannedreason = ini.GetSetting("Main", "BannedDrop")
         ini = self.BannedPeopleIni()
-        if ini.GetSetting("Ips", ip) == "1":
+        if ini.GetSetting("Ips", ip) == "1" and ini.GetSetting("Ips", ip):
+            if ini.GetSetting("Ids", id) is None:
+                ini.AddSetting("Ids", id, "1")
+                ini.AddSetting("NameIps", Player.Name, ip)
+                ini.AddSetting("NameIds", Player.Name, id)
             Player.Kick(bannedreason)
             return
-        if ini.GetSetting("Ids", id) == "1":
+        if ini.GetSetting("Ids", id) == "1" and ini.GetSetting("Ids", id):
+            if ini.GetSetting("Ips", ip) is None:
+                ini.AddSetting("Ips", ip, "1")
+                ini.AddSetting("NameIps", Player.Name, ip)
+                ini.AddSetting("NameIds", Player.Name, id)
             Player.Kick(bannedreason)

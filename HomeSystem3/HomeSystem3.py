@@ -1,5 +1,5 @@
 __author__ = 'DreTaX'
-__version__ = '3.2'
+__version__ = '3.4'
 import clr
 
 clr.AddReferenceByPartialName("Fougerite")
@@ -42,6 +42,7 @@ class HomeSystem3:
         DataStore.Flush("HomeSys3JCD")
         DataStore.Flush("HomeTimer")
         DataStore.Flush("HomeSys3CD")
+        DataStore.Flush("homesystemautoban")
 
     def isMod(self, id):
         if DataStore.ContainsKey("Moderators", id):
@@ -60,8 +61,10 @@ class HomeSystem3:
             ini.AddSetting("Settings", "Message", "No Derppassing ask the owner if you can live here")
             ini.AddSetting("Settings", "Distance", "25")
             ini.AddSetting("Settings", "SysName", "HomeSystem")
+            ini.AddSetting("Settings", "EJoinCooldown", "1")
             ini.AddSetting("Settings", "JoinCooldown", "30")
             ini.AddSetting("Settings", "Cooldown", "300000")
+            ini.AddSetting("Settings", "SendPlayertoHomeorRandom", "1")
             ini.AddSetting("Settings", "Randoms", "8156")
             ini.Save()
         return Plugin.GetIni("Config")
@@ -82,7 +85,7 @@ class HomeSystem3:
         CheckV method based on Spock's method.
         Upgraded by DreTaX
         Can Handle Single argument and Array args.
-        V4.0
+        V4.1
     """
 
     def GetPlayerName(self, namee):
@@ -114,7 +117,7 @@ class HomeSystem3:
             p = self.GetPlayerName(nargs)
             if p is not None:
                 return p
-            for pl in Server.ActivePlayers:
+            for pl in Server.Players:
                 if nargs in pl.Name.lower():
                     p = pl
                     count += 1
@@ -174,7 +177,7 @@ class HomeSystem3:
             loc = Player.Location
             if not self.HasHome(id):
                 type = Util.TryFindReturnType("DeployableObject")
-                objects = UnityEngine.Resources.FindObjectsOfTypeAll(type)
+                objects = UnityEngine.Object.FindObjectsOfType(type)
                 for x in objects:
                     name = str(x.name).lower()
                     if "sleeping" in name:
@@ -354,21 +357,27 @@ class HomeSystem3:
         ini = self.Config()
         sys = ini.GetSetting("Settings", "SysName")
         cooldown = int(ini.GetSetting("Settings", "JoinCooldown"))
+        sendhome = int(ini.GetSetting("Settings", "SendPlayertoHomeorRandom"))
+        ecooldown = int(ini.GetSetting("Settings", "EJoinCooldown"))
         if jtime is None:
-            self.SendPlayerToHome(id)
+            if sendhome == 1:
+                self.SendPlayerToHome(id)
             return
         if int(System.Environment.TickCount - jtime) < 0 or math.isnan(int(System.Environment.TickCount - jtime)):
-            self.SendPlayerToHome(id)
+            if sendhome == 1:
+                self.SendPlayerToHome(id)
             return
-        calc = int(System.Environment.TickCount - (jtime + (cooldown * 1000)))
-        if System.Environment.TickCount <= jtime + cooldown * 1000:
-            calc2 = cooldown * 1000
-            calc2 = round((calc2 - calc) / 1000 - cooldown, 2)
-            Player.MessageFrom(sys, self.red + str(cooldown) + " seconds cooldown at join. You can't join till: " + str(calc2) + " more seconds.")
-            Player.Disconnect()
-            return
-        elif System.Environment.TickCount > jtime + (cooldown * 1000):
-            self.SendPlayerToHome(id)
+        if ecooldown == 1:
+            calc = int(System.Environment.TickCount - (jtime + (cooldown * 1000)))
+            if System.Environment.TickCount <= jtime + cooldown * 1000:
+                calc2 = cooldown * 1000
+                calc2 = round((calc2 - calc) / 1000 - cooldown, 2)
+                Player.MessageFrom(sys, self.red + str(cooldown) + " seconds cooldown at join. You can't join till: " + str(calc2) + " more seconds.")
+                Player.Disconnect()
+                return
+            elif System.Environment.TickCount > jtime + (cooldown * 1000):
+                if sendhome == 1:
+                    self.SendPlayerToHome(id)
         DataStore.Remove("HomeSys3JCD", id)
 
 
@@ -380,6 +389,7 @@ class HomeSystem3:
             return
         if not DataStore.ContainsKey("HomeSys3JCD", id):
             DataStore.Add("HomeSys3JCD", id, System.Environment.TickCount)
+        DataStore.Add("homesystemautoban", id, "none")
 
     def On_EntityDeployed(self, Player, Entity):
         if Entity is not None and Player is not None:
@@ -391,7 +401,7 @@ class HomeSystem3:
                 sys = ini.GetSetting("Settings", "SysName")
                 msg = ini.GetSetting("Settings", "Message")
                 type = Util.TryFindReturnType("StructureComponent")
-                objects = UnityEngine.Resources.FindObjectsOfTypeAll(type)
+                objects = UnityEngine.Object.FindObjectsOfType(type)
                 for x in objects:
                     if "Foundation" in x.name or "Ceiling" in x.name:
                         dist = round(Util.GetVectorsDistance(loc, x.gameObject.transform.position), 2)
